@@ -1653,6 +1653,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   padding: 0 24px;
   background: rgba(255, 255, 255, 0.9);
   border-top: 1px solid rgba(230, 232, 239, 0.95);
@@ -1666,6 +1667,31 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.footer-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.footer-left > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.footer-right,
+.footer-icp {
+  flex-shrink: 0;
+}
+
+.footer-icp {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.footer-icp:hover {
+  color: var(--primary);
 }
 
 .footer-tip-dot {
@@ -3272,5 +3298,20 @@ body {
   .editor-textarea {
     min-height: 300px;
     font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select,
+  .ant-input,
+  .ant-input-affix-wrapper input,
+  .ant-input-number-input,
+  .ant-picker-input > input,
+  .ant-select-selection-search-input,
+  .ant-mentions textarea,
+  .editor-textarea {
+    font-size: 16px !important;
   }
 }

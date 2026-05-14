@@ -69,6 +69,7 @@ const MEMBER_BACKEND_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || 
 const CONTENT_BACKEND_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "/api";
 
 const AUTH_TOKEN_STORAGE_KEY = "openclaw.authToken";
+const SETTINGS_COLLAPSED_STORAGE_KEY = "openclaw.settingsCollapsed";
 const STARTUP_AUTH_TIMEOUT_MS = 5000;
 const STARTUP_UPDATE_CHECK_DELAY_MS = 3500;
 
@@ -170,7 +171,10 @@ function InnerApp() {
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [isSendingDraft, setIsSendingDraft] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
-  const [settingsCollapsed, setSettingsCollapsed] = useState(false);
+  const [settingsCollapsed, setSettingsCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(SETTINGS_COLLAPSED_STORAGE_KEY) === "true";
+  });
   const [previewOpen, setPreviewOpen] = useState(false);
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [accountDialogMode, setAccountDialogMode] = useState<"create" | "edit">("create");
@@ -189,6 +193,10 @@ function InnerApp() {
       /* noop */
     }
   }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(SETTINGS_COLLAPSED_STORAGE_KEY, String(settingsCollapsed));
+  }, [settingsCollapsed]);
 
   const checkForAppUpdates = async (manual = false) => {
     // web 版本不需要检查更新
@@ -361,6 +369,7 @@ function InnerApp() {
   };
 
   const handleActiveAccountChange = (id: string) => {
+    if (id === activeAccountIdRef.current) return;
     setActiveAccountId(id);
     void persistWechatAccountsNow(accountsRef.current, id);
   };
@@ -400,13 +409,11 @@ function InnerApp() {
 
   const updateActiveAccount = (patch: Partial<WechatAccount>) => {
     if (!activeAccount) return;
-    setAccounts((current) => {
-      const next = current.map((account) =>
-        account.id === activeAccount.id ? { ...account, ...patch } : account,
-      );
-      void persistWechatAccountsNow(next, activeAccount.id);
-      return next;
-    });
+    const next = accountsRef.current.map((account) =>
+      account.id === activeAccount.id ? { ...account, ...patch } : account,
+    );
+    setAccounts(next);
+    void persistWechatAccountsNow(next, activeAccount.id);
   };
 
   const updateActivePrompt = async (patch: Partial<PromptSlot>) => {
@@ -828,20 +835,16 @@ function InnerApp() {
     };
 
     if (accountDialogMode === "create") {
-      setAccounts((current) => {
-        const next = [...current, payload];
-        void persistWechatAccountsNow(next, payload.id);
-        return next;
-      });
+      const next = [...accountsRef.current, payload];
+      setAccounts(next);
       setActiveAccountId(payload.id);
+      void persistWechatAccountsNow(next, payload.id);
       message.success("已新增公众号账号");
     } else {
-      setAccounts((current) => {
-        const next = current.map((account) => (account.id === payload.id ? payload : account));
-        void persistWechatAccountsNow(next, payload.id);
-        return next;
-      });
+      const next = accountsRef.current.map((account) => (account.id === payload.id ? payload : account));
+      setAccounts(next);
       setActiveAccountId(payload.id);
+      void persistWechatAccountsNow(next, payload.id);
       message.success("已更新公众号账号");
     }
 
@@ -913,11 +916,9 @@ function InnerApp() {
         setAccountForm((current) => ({ ...current, thumbMediaId: result.thumbMediaId }));
       } else {
         const id = uploadTarget.id;
-        setAccounts((current) => {
-          const next = current.map((a) => (a.id === id ? { ...a, thumbMediaId: result.thumbMediaId } : a));
-          void persistWechatAccountsNow(next, activeAccountId);
-          return next;
-        });
+        const next = accountsRef.current.map((a) => (a.id === id ? { ...a, thumbMediaId: result.thumbMediaId } : a));
+        setAccounts(next);
+        void persistWechatAccountsNow(next, activeAccountIdRef.current);
       }
       message.success("封面图上传成功");
     } catch (error) {
@@ -1275,6 +1276,9 @@ function InnerApp() {
             <span className="footer-tip-dot">•</span>
             支持直接发送到公众号草稿箱，减少来回复制粘贴
           </div>
+          <a className="footer-icp" href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">
+            冀ICP备2024091417号
+          </a>
         </footer>
       </div>
 
