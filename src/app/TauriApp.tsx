@@ -72,6 +72,7 @@ const AUTH_TOKEN_STORAGE_KEY = "openclaw.authToken";
 const SETTINGS_COLLAPSED_STORAGE_KEY = "openclaw.settingsCollapsed";
 const STARTUP_AUTH_TIMEOUT_MS = 5000;
 const STARTUP_UPDATE_CHECK_DELAY_MS = 3500;
+const WECHAT_COVER_MAX_BYTES = 5 * 1024 * 1024;
 
 /** 历史版本与本应用曾写入的本地草稿/公众号缓存，启动时清除（不再使用 localStorage 持久化这些内容） */
 const LEGACY_LOCAL_CACHE_KEYS = [
@@ -901,8 +902,8 @@ function InnerApp() {
       message.warning("封面图只支持 PNG 或 JPG");
       return;
     }
-    if (file.size > 1024 * 1024) {
-      message.warning("封面图大小不能超过 1MB");
+    if (file.size > WECHAT_COVER_MAX_BYTES) {
+      message.warning("封面图大小不能超过 5MB");
       return;
     }
 
