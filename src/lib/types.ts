@@ -51,6 +51,8 @@ export interface GeneratePayload {
   apiBaseUrl?: string;
   enableWebSearch?: boolean;
   imagePrompt?: string;
+  regenerateForDeAi?: boolean;
+  clientSource?: string;
 }
 
 export interface WechatAccount {
@@ -87,6 +89,7 @@ export interface MembershipPlan {
   textDailyLimit: number;
   textMonthlyLimit?: number;
   imageMonthlyLimit: number;
+  deAiMonthlyLimit: number;
   wechatAccountLimit: number;
   tagline: string;
   features: string[];
@@ -121,6 +124,7 @@ export interface UserQuotaSummary {
   usesFreeRollingWindows?: boolean;
   text: UsageQuotaItem;
   image: UsageQuotaItem;
+  deAi: UsageQuotaItem;
 }
 
 export interface AuthSession {

@@ -1643,8 +1643,23 @@ body {
 }
 
 .results-footer-left {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   min-width: 0;
+}
+
+.results-footer-right {
+  display: inline-flex;
+}
+
+.results-footer-retry-btn {
+  border-color: rgba(99, 102, 241, 0.28);
+  color: #4f46e5;
+}
+
+.results-footer-retry-btn:hover,
+.results-footer-retry-btn:focus-visible {
+  border-color: #6366f1;
+  color: #4338ca;
 }
 
 .footer {

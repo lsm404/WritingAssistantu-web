@@ -567,6 +567,10 @@ function InnerApp() {
       return "本月配图额度已用完，下月自动恢复；也可升级会员继续使用。";
     }
 
+    if (error.message === "DE_AI_QUOTA_EXCEEDED") {
+      return "二次去 AI 额度已用完，请等下个周期刷新后再使用。";
+    }
+
     if (error.message === "UNAUTHORIZED") {
       return "登录状态已失效，请重新登录后再试。";
     }
@@ -929,7 +933,7 @@ function InnerApp() {
     }
   };
 
-  const handleGenerateArticle = async () => {
+  const handleGenerateArticle = async (regenerateForDeAi = false) => {
     if (articleDraft.topic.length > WORKSPACE_TOPIC_MAX_CHARS) {
       message.warning(`主题请勿超过 ${WORKSPACE_TOPIC_MAX_CHARS} 字`);
       return;
@@ -957,19 +961,30 @@ function InnerApp() {
       message.info("将按照免费版周期性配图额度扣减；若额度不足会提示您是否开通会员。");
     }
 
+    const previousResultMarkdown = resultMarkdown;
+    const previousDraftMeta = draftMeta;
+    let hasReceivedArticleDelta = false;
+
     setIsGenerating(true);
-    setResultMarkdown("");
-    setDraftMeta((current) => ({ ...current, title: "", digest: "" }));
+    if (!regenerateForDeAi) {
+      setResultMarkdown("");
+      setDraftMeta((current) => ({ ...current, title: "", digest: "" }));
+    }
     try {
       const result = await generateArticle(
         CONTENT_BACKEND_BASE_URL,
         authToken,
         {
           ...articleDraft,
+          regenerateForDeAi,
           systemPrompt: (articleDraft.systemPrompt ?? "").trim() || activePrompt?.content || "",
         },
         (delta) => {
-          setResultMarkdown((prev) => stripUnicodeReplacementChars(prev + delta));
+          setResultMarkdown((prev) => {
+            const nextMarkdown = regenerateForDeAi && !hasReceivedArticleDelta ? delta : prev + delta;
+            hasReceivedArticleDelta = true;
+            return stripUnicodeReplacementChars(nextMarkdown);
+          });
         },
       );
       applyQuotaFromResponse(result.quota);
@@ -999,9 +1014,9 @@ function InnerApp() {
       }
 
       setDraftMeta((current) => ({
-        title: current.title || title,
+        title: regenerateForDeAi ? title : current.title || title,
         author: current.author || activeAccount?.name || "",
-        digest: current.digest || digest,
+        digest: regenerateForDeAi ? digest : current.digest || digest,
       }));
       message.success(
         (articleDraft.imageCount ?? 0) > 0
@@ -1009,6 +1024,10 @@ function InnerApp() {
           : "文章生成完成",
       );
     } catch (error) {
+      if (regenerateForDeAi) {
+        setResultMarkdown(previousResultMarkdown);
+        setDraftMeta(previousDraftMeta);
+      }
       if (authToken) {
         void refreshCurrentUser(authToken).catch(() => undefined);
       }
@@ -1157,7 +1176,7 @@ function InnerApp() {
                   className="header-generate-btn"
                   type="primary"
                   icon={<RocketOutlined />}
-                  onClick={handleGenerateArticle}
+                  onClick={() => void handleGenerateArticle()}
                   loading={isGenerating}
                   disabled={isSendingDraft}
                 >
@@ -1193,6 +1212,7 @@ function InnerApp() {
             onCopyMarkdown={handleCopyMarkdown}
             onClearResult={handleClearResult}
             onPreview={() => setPreviewOpen(true)}
+            onRegenerateArticle={() => void handleGenerateArticle(true)}
           />
         ) : null}
 

@@ -1,4 +1,4 @@
-import { Button, Input, Radio, Select, Space, Spin } from "antd";
+import { Button, Input, Popconfirm, Radio, Select, Space, Spin } from "antd";
 import {
   BulbOutlined,
   CopyOutlined,
@@ -9,6 +9,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PictureOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import type { GeneratePayload, WechatAccount } from "../../lib/types";
 import {
@@ -47,6 +48,7 @@ type Props = {
   onCopyMarkdown: () => void;
   onClearResult: () => void;
   onPreview: () => void;
+  onRegenerateArticle: () => void;
 };
 
 export function WorkspacePage({
@@ -74,6 +76,7 @@ export function WorkspacePage({
   onCopyMarkdown,
   onClearResult,
   onPreview,
+  onRegenerateArticle,
 }: Props) {
   return (
     <div className="workspace-page">
@@ -320,18 +323,40 @@ export function WorkspacePage({
             <div className="results-footer">
               <Space className="results-footer-left">
                 <Button
+                  size="small"
                   icon={<EyeOutlined />}
                   onClick={onPreview}
                   disabled={isGenerating || isSendingDraft || !resultMarkdown.trim()}
                 >
                   预览
                 </Button>
-                <Button icon={<CopyOutlined />} onClick={onCopyMarkdown} disabled={isGenerating || isSendingDraft}>
-                  复制 Markdown
+                <Button size="small" icon={<CopyOutlined />} onClick={onCopyMarkdown} disabled={isGenerating || isSendingDraft}>
+                  复制
                 </Button>
-                <Button icon={<DeleteOutlined />} danger onClick={onClearResult} disabled={isGenerating || isSendingDraft}>
+                <Button size="small" icon={<DeleteOutlined />} danger onClick={onClearResult} disabled={isGenerating || isSendingDraft}>
                   清空
                 </Button>
+                {resultMarkdown.trim() ? (
+                  <span className="results-footer-right">
+                    <Popconfirm
+                      title="二次去AI"
+                      description="额度有限，仅在朱雀偶发标红、当前稿件不够稳时使用。"
+                      okText="开始优化"
+                      cancelText="先不"
+                      placement="topRight"
+                      onConfirm={onRegenerateArticle}
+                    >
+                      <Button
+                        size="small"
+                        className="results-footer-retry-btn"
+                        icon={<ReloadOutlined />}
+                        disabled={isGenerating || isSendingDraft}
+                      >
+                        二次去AI
+                      </Button>
+                    </Popconfirm>
+                  </span>
+                ) : null}
               </Space>
             </div>
           </div>

@@ -164,6 +164,8 @@ export function buildGeneratePayload(payload: GeneratePayload) {
     reference_level: payload.referenceLevel || undefined,
     expression_mode: payload.expressionMode || undefined,
     enable_web_search: payload.enableWebSearch ?? undefined,
+    regenerate_for_de_ai: payload.regenerateForDeAi || undefined,
+    client_source: payload.clientSource || "web",
   };
 }
 
