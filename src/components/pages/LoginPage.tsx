@@ -99,7 +99,7 @@ export function LoginPage({ mode, loading, form, onModeChange, onFieldChange, on
 
             {mode === "register" ? (
               <label className="auth-field auth-field-invite-code">
-                <span>代理人邀请码（8 位字母）</span>
+                <span>激活码（8 位字母）</span>
                 <Input
                   className="premium-input invite-code-input"
                   size="large"

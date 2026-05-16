@@ -17,7 +17,11 @@ import type {
 } from "./types";
 
 import { getOrCreateDeviceId } from "./device-id";
-import { encryptWechatAppSecretForTransport } from "./wechat-account-transport-crypto";
+import {
+  encodeWechatAppSecretForTransport,
+  encryptWechatAppSecretForTransport,
+  isWechatTransportCryptoUnavailable,
+} from "./wechat-account-transport-crypto";
 
 const envBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
 
@@ -483,15 +487,37 @@ export async function saveUserWechatAccounts(
   const { publicKeyPem } = await fetchWechatAccountsEncryptionKey(baseUrl, token);
 
   const accountsPayload = await Promise.all(
-    payload.accounts.map(async (a) => ({
-      id: a.id,
-      name: a.name,
-      appId: a.appId,
-      thumbMediaId: a.thumbMediaId,
-      appSecretEncrypted: a.appSecret.trim()
-        ? await encryptWechatAppSecretForTransport(a.appSecret, publicKeyPem)
-        : "",
-    })),
+    payload.accounts.map(async (a) => {
+      const trimmedSecret = a.appSecret.trim();
+      const item: {
+        id: string;
+        name: string;
+        appId: string;
+        thumbMediaId: string;
+        appSecretEncrypted?: string;
+        appSecretBase64?: string;
+      } = {
+        id: a.id,
+        name: a.name,
+        appId: a.appId,
+        thumbMediaId: a.thumbMediaId,
+        appSecretEncrypted: "",
+      };
+
+      if (!trimmedSecret) return item;
+
+      try {
+        item.appSecretEncrypted = await encryptWechatAppSecretForTransport(trimmedSecret, publicKeyPem);
+      } catch (error) {
+        if (!isWechatTransportCryptoUnavailable(error)) {
+          throw error;
+        }
+        delete item.appSecretEncrypted;
+        item.appSecretBase64 = encodeWechatAppSecretForTransport(trimmedSecret);
+      }
+
+      return item;
+    }),
   );
 
   const response = await fetch(`${baseUrl}/v1/wechat-accounts`, {

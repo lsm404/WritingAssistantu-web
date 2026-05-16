@@ -99,6 +99,112 @@ a {
   color: #0f172a !important;
 }
 
+.login-panel-scroll {
+  align-items: center !important;
+  scrollbar-gutter: stable;
+}
+
+.login-form .login-input.ant-input,
+.login-form .login-input.ant-input-affix-wrapper,
+.login-form .login-submit.ant-btn {
+  height: 56px !important;
+  min-height: 56px !important;
+}
+
+.login-card h2.login-title.ant-typography {
+  margin-top: 16px !important;
+  font-size: 36px !important;
+  line-height: 1.12 !important;
+}
+
+@media (max-height: 900px) and (min-width: 1024px) {
+  .login-panel-scroll {
+    align-items: center !important;
+    padding-top: 20px !important;
+    padding-bottom: 20px !important;
+  }
+
+  .login-card {
+    max-width: 460px !important;
+    margin-top: auto !important;
+    margin-bottom: auto !important;
+    padding: 24px !important;
+    border-radius: 28px !important;
+  }
+
+  .login-card h2.login-title.ant-typography {
+    margin-top: 10px !important;
+    font-size: 32px !important;
+    line-height: 1.15 !important;
+  }
+
+  .login-card .ant-typography {
+    line-height: 1.45 !important;
+  }
+
+  .login-tabs {
+    margin-top: 18px !important;
+  }
+
+  .login-tabs button {
+    padding-top: 9px !important;
+    padding-bottom: 9px !important;
+  }
+
+  .login-form {
+    margin-top: 18px !important;
+  }
+
+  .login-form .admin-form-item {
+    margin-bottom: 8px !important;
+  }
+
+  .login-form .ant-form-item-label {
+    padding-bottom: 3px !important;
+  }
+
+  .login-form .login-input.ant-input,
+  .login-form .login-input.ant-input-affix-wrapper,
+  .login-form .login-submit.ant-btn {
+    height: 44px !important;
+    min-height: 44px !important;
+  }
+
+  .login-form .login-input.ant-input,
+  .login-form .login-input.ant-input-affix-wrapper {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .login-form .login-submit.ant-btn {
+    margin-top: 4px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .login-shell {
+    display: flex !important;
+    min-height: 100dvh;
+  }
+
+  .login-shell > section:first-child {
+    display: none !important;
+  }
+
+  .login-panel-scroll {
+    align-items: center !important;
+    flex: 1;
+    padding: 18px !important;
+  }
+
+  .login-card {
+    margin-top: auto !important;
+    margin-bottom: auto !important;
+    padding: 28px 22px !important;
+    border-radius: 26px !important;
+  }
+}
+
 .boot-screen {
   min-height: 100vh;
   display: grid;

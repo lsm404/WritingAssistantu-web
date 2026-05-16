@@ -23,6 +23,7 @@ import {
   saveUserWechatAccounts,
 } from "../lib/openclaw-api";
 import { copyText } from "../lib/clipboard";
+import { isValidEmailAddress, normalizeEmailInput } from "../lib/email";
 // No tauri imports
 import type {
   AuthSession,
@@ -74,6 +75,7 @@ const SETTINGS_COLLAPSED_STORAGE_KEY = "openclaw.settingsCollapsed";
 const STARTUP_AUTH_TIMEOUT_MS = 5000;
 const STARTUP_UPDATE_CHECK_DELAY_MS = 3500;
 const WECHAT_COVER_MAX_BYTES = 5 * 1024 * 1024;
+const EMAIL_FORMAT_MESSAGE = "邮箱格式不正确，请使用英文句号，例如 name@qq.com";
 
 /** 历史版本与本应用曾写入的本地草稿/公众号缓存，启动时清除（不再使用 localStorage 持久化这些内容） */
 const LEGACY_LOCAL_CACHE_KEYS = [
@@ -92,6 +94,7 @@ function pickPromptCreatedAt(p: Record<string, unknown>): string | undefined {
 }
 
 const REGISTER_ERROR_HINT: Record<string, string> = {
+  INVALID_EMAIL: EMAIL_FORMAT_MESSAGE,
   REGISTRATION_IP_LIMIT: "当前 IP 在近期注册次数过多，请稍后再试。",
   REGISTRATION_SUBNET_LIMIT: "当前网络环境注册次数过多，请稍后再试。",
   REGISTRATION_DEVICE_LIMIT: "本设备注册账号数已达上限，请使用已有账号登录。",
@@ -123,6 +126,13 @@ function getMembershipPlanLabel(membership: UserMembership | null, fallback: str
 function isTextOnlyMembership(membership: UserMembership | null) {
   if (!membership?.isActive || !membership.plan) return false;
   return (membership.plan.planCategory ?? (membership.plan.imageMonthlyLimit > 0 ? "text_image" : "text_only")) === "text_only";
+}
+
+function getWechatAccountPersistFailureMessage(error: unknown) {
+  if (error instanceof Error && error.message === "WECHAT_ACCOUNT_TRANSPORT_CRYPTO_UNAVAILABLE") {
+    return "当前页面无法加密公众号 Secret，请使用 HTTPS、localhost 或桌面客户端后再保存";
+  }
+  return "公众号账号未能同步到服务器";
 }
 
 function InnerApp() {
@@ -190,6 +200,7 @@ function InnerApp() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [accountDialogMode, setAccountDialogMode] = useState<"create" | "edit">("create");
+  const [accountDialogSaving, setAccountDialogSaving] = useState(false);
   const [accountForm, setAccountForm] = useState<WechatAccount>(() => emptyWechatAccount());
   /** 用于在切换 Tab 时同步 systemPrompt，避免与 persisted draft 的错位 guard 阻止显示通用模板内容 */
   const prevPromptIdRef = useRef<string | null>(null);
@@ -368,15 +379,17 @@ function InnerApp() {
   );
 
   const persistWechatAccountsNow = async (nextAccounts: WechatAccount[], nextActiveId: string) => {
-    if (!authToken || !currentUser) return;
+    if (!authToken || !currentUser) return true;
     try {
       await saveUserWechatAccounts(MEMBER_BACKEND_BASE_URL, authToken, {
         accounts: nextAccounts,
         activeAccountId: nextActiveId,
       });
+      return true;
     } catch (e) {
       console.error("persist wechat accounts failed", e);
-      message.warning("公众号账号未能同步到服务器");
+      message.warning(getWechatAccountPersistFailureMessage(e));
+      return false;
     }
   };
 
@@ -713,8 +726,15 @@ function InnerApp() {
   };
 
   const handleAuthSubmit = async () => {
-    if (!authForm.email.trim() || !authForm.password.trim()) {
+    const normalizedEmail = normalizeEmailInput(authForm.email);
+
+    if (!normalizedEmail || !authForm.password.trim()) {
       message.warning("请输入邮箱和密码");
+      return;
+    }
+
+    if (authMode === "register" && !isValidEmailAddress(normalizedEmail)) {
+      message.warning(EMAIL_FORMAT_MESSAGE);
       return;
     }
 
@@ -732,7 +752,7 @@ function InnerApp() {
     try {
       if (authMode === "register") {
         await registerAccount(MEMBER_BACKEND_BASE_URL, {
-          email: authForm.email.trim(),
+          email: normalizedEmail,
           password: authForm.password,
           displayName: authForm.displayName.trim(),
           inviteCode: authForm.inviteCode.trim(),
@@ -743,7 +763,7 @@ function InnerApp() {
       }
 
       const result: AuthSession = await loginAccount(MEMBER_BACKEND_BASE_URL, {
-        email: authForm.email.trim(),
+        email: normalizedEmail,
         password: authForm.password,
       });
 
@@ -844,7 +864,9 @@ function InnerApp() {
     setAccountDialogOpen(true);
   };
 
-  const submitAccountDialog = () => {
+  const submitAccountDialog = async () => {
+    if (accountDialogSaving) return;
+
     const trimmedName = accountForm.name.trim();
     if (!trimmedName) {
       message.warning("请填写账号名称");
@@ -859,29 +881,37 @@ function InnerApp() {
       thumbMediaId: accountForm.thumbMediaId.trim(),
     };
 
-    if (accountDialogMode === "create") {
-      const next = [...accountsRef.current, payload];
-      setAccounts(next);
-      setActiveAccountId(payload.id);
-      void persistWechatAccountsNow(next, payload.id);
-      message.success("已新增公众号账号");
-    } else {
-      const next = accountsRef.current.map((account) => (account.id === payload.id ? payload : account));
-      setAccounts(next);
-      setActiveAccountId(payload.id);
-      void persistWechatAccountsNow(next, payload.id);
-      message.success("已更新公众号账号");
-    }
+    setAccountDialogSaving(true);
+    try {
+      if (accountDialogMode === "create") {
+        const next = [...accountsRef.current, payload];
+        const saved = await persistWechatAccountsNow(next, payload.id);
+        if (!saved) return;
+        setAccounts(next);
+        setActiveAccountId(payload.id);
+        message.success("已新增公众号账号");
+      } else {
+        const next = accountsRef.current.map((account) => (account.id === payload.id ? payload : account));
+        const saved = await persistWechatAccountsNow(next, payload.id);
+        if (!saved) return;
+        setAccounts(next);
+        setActiveAccountId(payload.id);
+        message.success("已更新公众号账号");
+      }
 
-    setAccountDialogOpen(false);
+      setAccountDialogOpen(false);
+    } finally {
+      setAccountDialogSaving(false);
+    }
   };
 
-  const removeAccountByTarget = (account: WechatAccount) => {
+  const removeAccountByTarget = async (account: WechatAccount) => {
     const nextAccounts = accounts.filter((a) => a.id !== account.id);
     const nextId = activeAccountId === account.id ? nextAccounts[0]?.id ?? "" : activeAccountId;
+    const saved = await persistWechatAccountsNow(nextAccounts, nextId);
+    if (!saved) return;
     setAccounts(nextAccounts);
     setActiveAccountId(nextId);
-    void persistWechatAccountsNow(nextAccounts, nextId);
     message.success("已删除公众号账号");
   };
 
@@ -1354,8 +1384,11 @@ function InnerApp() {
       <Modal
         title={accountDialogMode === "create" ? "新增公众号账号" : "编辑公众号账号"}
         open={accountDialogOpen}
-        onCancel={() => setAccountDialogOpen(false)}
+        onCancel={() => {
+          if (!accountDialogSaving) setAccountDialogOpen(false);
+        }}
         onOk={submitAccountDialog}
+        confirmLoading={accountDialogSaving}
         okText={accountDialogMode === "create" ? "创建" : "保存"}
         cancelText="取消"
         width={460}

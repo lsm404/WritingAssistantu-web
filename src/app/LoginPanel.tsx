@@ -19,9 +19,11 @@ import {
   loginAccount,
   registerAccount,
 } from "../lib/openclaw-api";
+import { isValidEmailAddress, normalizeEmailInput } from "../lib/email";
 import type { AuthUser } from "../lib/types";
 
 const { Title, Paragraph } = Typography;
+const EMAIL_FORMAT_MESSAGE = "邮箱格式不正确，请使用英文句号，例如 name@qq.com";
 
 export function LoginPanel({
   apiBaseUrl,
@@ -44,15 +46,16 @@ export function LoginPanel({
     const values = await form.validateFields();
     setLoading(true);
     try {
+      const normalizedEmail = normalizeEmailInput(values.email);
       if (mode === "login") {
         const session = await loginAccount(apiBaseUrl, {
-          email: values.email,
+          email: normalizedEmail,
           password: values.password,
         });
         onAuthed(session.token, session.user);
       } else {
         await registerAccount(apiBaseUrl, {
-          email: values.email,
+          email: normalizedEmail,
           password: values.password,
           displayName: values.displayName,
           inviteCode: values.inviteCode,
@@ -68,7 +71,7 @@ export function LoginPanel({
   };
 
   return (
-    <main className="grid min-h-screen overflow-hidden bg-[#f4efe8] text-slate-950 lg:grid-cols-[1.05fr_0.95fr]">
+    <main className="login-shell grid h-dvh min-h-dvh overflow-hidden bg-[#f4efe8] text-slate-950 lg:grid-cols-[1.05fr_0.95fr]">
       <section
         className="relative isolate overflow-hidden bg-[linear-gradient(160deg,#4b5563_0%,#2f3642_40%,#1f2937_100%)]"
         onMouseMove={(event) => {
@@ -95,12 +98,12 @@ export function LoginPanel({
         </div>
       </section>
 
-      <section className="flex items-center justify-center bg-[#f7f3ee] px-6 py-10 sm:px-10 lg:px-14">
-        <div className="w-full max-w-md rounded-[36px] border border-white/70 bg-white/90 p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)] backdrop-blur sm:p-10">
+      <section className="login-panel-scroll flex min-h-0 items-start justify-center overflow-y-auto bg-[#f7f3ee] px-6 py-6 sm:px-10 lg:px-14">
+        <div className="login-card my-auto w-full max-w-md rounded-[36px] border border-white/70 bg-white/90 p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)] backdrop-blur sm:p-10">
           <div>
             <div>
               <span className="text-xs font-semibold uppercase tracking-[0.32em] text-[#6b7280]">Secure Access</span>
-              <Title className="!mt-4 !mb-0 !text-4xl !font-semibold !tracking-tight !text-slate-950" level={2}>
+              <Title className="login-title !mb-0 !font-semibold !tracking-tight !text-slate-950" level={2}>
                 {mode === "login" ? "Welcome back!" : "Create account"}
               </Title>
               <Paragraph className="!mt-2 !mb-0 !text-sm !leading-6 !text-slate-500">
@@ -108,7 +111,7 @@ export function LoginPanel({
               </Paragraph>
             </div>
 
-            <div className="mt-7 grid grid-cols-2 rounded-full border border-slate-200 bg-stone-50 p-1" role="tablist" aria-label="账号入口">
+            <div className="login-tabs mt-7 grid grid-cols-2 rounded-full border border-slate-200 bg-stone-50 p-1" role="tablist" aria-label="账号入口">
               <button className={clsx("rounded-full px-4 py-3 text-sm font-semibold transition", mode === "login" ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:text-slate-950")} type="button" onClick={() => setMode("login")}>
                 登录账号
               </button>
@@ -118,22 +121,22 @@ export function LoginPanel({
             </div>
           </div>
 
-          <Form className="mt-8" form={form} layout="vertical" onFinish={submit}>
+          <Form className="login-form mt-8" form={form} layout="vertical" onFinish={submit}>
             {mode === "register" ? (
               <Form.Item className="admin-form-item" name="displayName" label="创作者昵称" rules={[{ required: true, message: "请输入昵称" }]}>
-                <Input className="!h-14 !rounded-full !border-slate-200 !bg-white !px-5 !text-sm !text-slate-900 !shadow-none focus:!border-[#5b43ff]" size="large" placeholder="例如：林大大" onFocus={() => setFocusField("displayName")} onBlur={() => setFocusField(null)} />
+                <Input className="login-input !rounded-full !border-slate-200 !bg-white !px-5 !text-sm !text-slate-900 !shadow-none focus:!border-[#5b43ff]" size="large" placeholder="例如：林大大" onFocus={() => setFocusField("displayName")} onBlur={() => setFocusField(null)} />
               </Form.Item>
             ) : null}
             {mode === "register" ? (
               <Form.Item
                 className="admin-form-item"
                 name="inviteCode"
-                label="代理人邀请码（8 位字母）"
+                label="激活码（8 位字母）"
                 normalize={(value) => String(value || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 8)}
-                rules={[{ required: true, message: "请输入邀请码" }]}
+                rules={[{ required: true, message: "请输入激活码" }]}
               >
                 <Input
-                  className="!h-14 !rounded-full !border-slate-200 !bg-white !px-5 !text-sm !text-slate-900 !shadow-none focus:!border-[#5b43ff]"
+                  className="login-input !rounded-full !border-slate-200 !bg-white !px-5 !text-sm !text-slate-900 !shadow-none focus:!border-[#5b43ff]"
                   size="large"
                   prefix={<GiftOutlined className="text-slate-400" />}
                   placeholder="例如：ABCDEFGH"
@@ -143,13 +146,28 @@ export function LoginPanel({
                 />
               </Form.Item>
             ) : null}
-            <Form.Item className="admin-form-item" name="email" label="邮箱账号" rules={[{ required: true, message: "请输入邮箱" }]}>
-              <Input className="!h-14 !rounded-full !border-slate-200 !bg-white !px-5 !text-sm !text-slate-900 !shadow-none focus:!border-[#5b43ff]" size="large" prefix={<MailOutlined className="text-slate-400" />} placeholder="name@example.com" onFocus={() => setFocusField("email")} onBlur={() => setFocusField(null)} />
+            <Form.Item
+              className="admin-form-item"
+              name="email"
+              label="邮箱账号"
+              rules={[
+                { required: true, message: "请输入邮箱" },
+                {
+                  validator: (_, value) => {
+                    if (mode !== "register" || isValidEmailAddress(value)) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error(EMAIL_FORMAT_MESSAGE));
+                  },
+                },
+              ]}
+            >
+              <Input className="login-input !rounded-full !border-slate-200 !bg-white !px-5 !text-sm !text-slate-900 !shadow-none focus:!border-[#5b43ff]" size="large" prefix={<MailOutlined className="text-slate-400" />} placeholder="name@example.com" onFocus={() => setFocusField("email")} onBlur={() => setFocusField(null)} />
             </Form.Item>
             <Form.Item className="admin-form-item" name="password" label="密码" rules={[{ required: true, message: "请输入密码" }]}>
-              <Input.Password className="!h-14 !rounded-full !border-slate-200 !bg-white !px-5 !text-sm !text-slate-900 !shadow-none focus:!border-[#5b43ff]" size="large" prefix={<LockOutlined className="text-slate-400" />} placeholder="至少 6 位字符" onFocus={() => setFocusField("password")} onBlur={() => setFocusField(null)} />
+              <Input.Password className="login-input !rounded-full !border-slate-200 !bg-white !px-5 !text-sm !text-slate-900 !shadow-none focus:!border-[#5b43ff]" size="large" prefix={<LockOutlined className="text-slate-400" />} placeholder="至少 6 位字符" onFocus={() => setFocusField("password")} onBlur={() => setFocusField(null)} />
             </Form.Item>
-            <Button className="!mt-2 !h-14 !rounded-full !border-slate-200 !bg-slate-950 !text-sm !font-semibold !text-white hover:!bg-slate-800" type="primary" htmlType="submit" size="large" block loading={loading} icon={<LoginOutlined />}>
+            <Button className="login-submit !mt-2 !rounded-full !border-slate-200 !bg-slate-950 !text-sm !font-semibold !text-white hover:!bg-slate-800" type="primary" htmlType="submit" size="large" block loading={loading} icon={<LoginOutlined />}>
               {mode === "login" ? "登录并进入工作台" : "注册账号并继续"}
             </Button>
           </Form>
@@ -242,15 +260,15 @@ function Character({
   const lookY = (mouse.y - eyeBase.y) * 12;
   const mouthStyle: CSSProperties | undefined = mouth
     ? {
-        transform: `translate(calc(-50% + ${Math.max(-5.5, Math.min(5.5, lookX * 0.26))}px), ${Math.max(-1.5, Math.min(4, lookY * 0.16 + passwordLean * 2.8))}px) scaleX(${1 - passwordLean * 0.08}) rotate(${Math.max(-4, Math.min(4, lookX * 0.12))}deg)`,
-      }
+      transform: `translate(calc(-50% + ${Math.max(-5.5, Math.min(5.5, lookX * 0.26))}px), ${Math.max(-1.5, Math.min(4, lookY * 0.16 + passwordLean * 2.8))}px) scaleX(${1 - passwordLean * 0.08}) rotate(${Math.max(-4, Math.min(4, lookX * 0.12))}deg)`,
+    }
     : undefined;
   const pupilStyle = avertEyes
     ? { transform: "translate3d(-1.6px, -0.1px, 0)", opacity: 1 }
     : {
-        transform: `translate3d(${Math.max(-2.1, Math.min(2.1, lookX * 0.5))}px, ${Math.max(-1.5, Math.min(1.5, lookY * 0.42))}px, 0)`,
-        opacity: 1,
-      };
+      transform: `translate3d(${Math.max(-2.1, Math.min(2.1, lookX * 0.5))}px, ${Math.max(-1.5, Math.min(1.5, lookY * 0.42))}px, 0)`,
+      opacity: 1,
+    };
   const radius = shape === "arch" ? "999px 999px 18px 18px" : shape === "slant" ? "10px 10px 14px 14px" : "10px 10px 0 0";
   const baseTilt = peeking && role === "leader" ? "perspective(900px) rotateX(7deg) rotateY(-2deg)" : "";
   const skew = shape === "slant" ? "skewY(-8deg)" : "none";
@@ -312,9 +330,9 @@ function Eye({
   const blinkAnimation: CSSProperties | undefined =
     eyeStyle === "full" && blink !== "none"
       ? {
-          animation: blink === "soft" ? "openclaw-blink-soft 4.8s ease-in-out infinite 0.35s" : "openclaw-blink-double 3.35s ease-in-out infinite 1.05s",
-          transformOrigin: "center 58%",
-        }
+        animation: blink === "soft" ? "openclaw-blink-soft 4.8s ease-in-out infinite 0.35s" : "openclaw-blink-double 3.35s ease-in-out infinite 1.05s",
+        transformOrigin: "center 58%",
+      }
       : undefined;
 
   if (eyeStyle === "dot") {
