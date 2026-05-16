@@ -902,39 +902,72 @@ body {
   line-height: 1.1;
 }
 
+.footer-membership-text {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 0;
+  font-family: inherit;
+  font-weight: 800;
+  line-height: 1.1;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
 .header-membership-tag.plan-tone-default,
 .footer-membership-pill.plan-tone-default {
-  /* background: #f3f4f6; */
-  border-color: #e5e7eb;
-  color: #4b5563;
+  background: #f3f4f6 !important;
+  border-color: #e5e7eb !important;
+  color: #4b5563 !important;
 }
 
 .header-membership-tag.plan-tone-sun,
 .footer-membership-pill.plan-tone-sun {
-  /* background: rgba(255, 203, 5, 0.18); */
-  /* border-color: rgba(246, 184, 0, 0.3); */
-  color: #c98900;
+  background: rgba(255, 203, 5, 0.18) !important;
+  border-color: rgba(246, 184, 0, 0.3) !important;
+  color: #c98900 !important;
 }
 
 .header-membership-tag.plan-tone-sky,
 .footer-membership-pill.plan-tone-sky {
-  /* background: rgba(59, 130, 246, 0.14); */
-  /* border-color: rgba(59, 130, 246, 0.24); */
-  color: #1d73d8;
+  background: rgba(59, 130, 246, 0.14) !important;
+  border-color: rgba(59, 130, 246, 0.24) !important;
+  color: #1d73d8 !important;
 }
 
 .header-membership-tag.plan-tone-orange,
 .footer-membership-pill.plan-tone-orange {
-  /* background: rgba(249, 115, 22, 0.14);
-  border-color: rgba(249, 115, 22, 0.24); */
-  color: #ea580c;
+  background: rgba(249, 115, 22, 0.14) !important;
+  border-color: rgba(249, 115, 22, 0.24) !important;
+  color: #ea580c !important;
 }
 
 .header-membership-tag.plan-tone-purple,
 .footer-membership-pill.plan-tone-purple {
-  /* background: rgba(179, 111, 245, 0.16);
-  border-color: rgba(179, 111, 245, 0.26); */
-  color: #a855f7;
+  background: rgba(179, 111, 245, 0.16) !important;
+  border-color: rgba(179, 111, 245, 0.26) !important;
+  color: #9333ea !important;
+}
+
+.footer-membership-text.plan-tone-default {
+  color: #4b5563 !important;
+}
+
+.footer-membership-text.plan-tone-sun {
+  color: #c98900 !important;
+}
+
+.footer-membership-text.plan-tone-sky {
+  color: #1d73d8 !important;
+}
+
+.footer-membership-text.plan-tone-orange {
+  color: #ea580c !important;
+}
+
+.footer-membership-text.plan-tone-purple {
+  color: #9333ea !important;
 }
 
 .header-edit-icon {
@@ -1005,6 +1038,11 @@ body {
   flex-shrink: 0;
   min-width: 300px;
   overflow-y: auto;
+}
+
+.panels-row--text-only .settings-panel:not(.settings-panel--collapsed) {
+  width: 300px;
+  min-width: 300px;
 }
 
 .settings-panel.settings-panel--collapsed {
@@ -2031,6 +2069,33 @@ body {
   gap: 14px;
 }
 
+.membership-plan-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.membership-plan-section-title {
+  margin: 2px 0 0;
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 900;
+  color: #1f2937;
+}
+
+.membership-plan-kind {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 2px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 .membership-plan-card {
   display: flex;
   flex-direction: column;
@@ -2998,6 +3063,7 @@ body {
   }
 
   .settings-panel,
+  .panels-row--text-only .settings-panel:not(.settings-panel--collapsed),
   .settings-panel.settings-panel--collapsed,
   .results-panel {
     width: 100%;
@@ -3316,14 +3382,18 @@ body {
   }
 }
 
-@media (max-width: 768px) {
+@media (hover: none) and (pointer: coarse), (max-width: 1024px) {
   input,
   textarea,
   select,
   .ant-input,
   .ant-input-affix-wrapper input,
+  .ant-input-affix-wrapper .ant-input,
   .ant-input-number-input,
   .ant-picker-input > input,
+  .ant-select-selector,
+  .ant-select-selection-item,
+  .ant-select-selection-placeholder,
   .ant-select-selection-search-input,
   .ant-mentions textarea,
   .editor-textarea {

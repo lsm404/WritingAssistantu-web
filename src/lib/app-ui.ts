@@ -269,7 +269,7 @@ export function defaultDraftMeta(): DraftMeta {
 export const lengthOptions: Array<{ label: string; value: ArticleLength }> = [
   { label: "短文 (400-600 字)", value: "short" },
   { label: "中等 (600-800 字)", value: "medium" },
-  { label: "长文 (800-1000 字)", value: "long" },
+  { label: "长文 (1100-1300 字)", value: "long" },
 ];
 
 /** 工作台主题字数上限（生成请求校验） */

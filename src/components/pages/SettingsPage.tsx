@@ -3,9 +3,12 @@ import type { RuntimeInfo, UserQuotaSummary } from "../../lib/types";
 
 const { Title, Text } = Typography;
 
+import type { MembershipPlan, UserMembership } from "../../lib/types";
+
 interface SettingsPageProps {
   runtimeInfo: RuntimeInfo | null;
   quota: UserQuotaSummary | null;
+  membership?: UserMembership | null;
   onCheckUpdate: () => Promise<void>;
 }
 
@@ -55,15 +58,21 @@ function QuotaRow({
   );
 }
 
-export function SettingsPage({ quota }: SettingsPageProps) {
+function getPlanCategoryLabel(plan?: Pick<MembershipPlan, "planCategory" | "imageMonthlyLimit"> | null) {
+  return (plan?.planCategory ?? ((plan?.imageMonthlyLimit ?? 0) > 0 ? "text_image" : "text_only")) === "text_only"
+    ? "文案创作"
+    : "图文创作";
+}
+
+export function SettingsPage({ quota, membership }: SettingsPageProps) {
   const textLabel =
     quota?.usesFreeRollingWindows && quota.text.resetEveryDays
       ? `文章 · 每 ${quota.text.resetEveryDays} 天`
-      : "本月文章";
+      : "文章";
   const imageLabel =
     quota?.usesFreeRollingWindows && quota.image.resetEveryDays
       ? `配图 · 每 ${quota.image.resetEveryDays} 天`
-      : "本月配图";
+      : "配图";
 
   return (
     <div className="page-container settings-page">
@@ -102,6 +111,7 @@ export function SettingsPage({ quota }: SettingsPageProps) {
               limit={quota?.text.limit ?? 0}
               refreshAt={quota?.text.quotaRefreshAt}
             />
+            {membership?.isActive && getPlanCategoryLabel(membership.plan) === "文案创作" ? null : (
             <QuotaRow
               tone="image"
               label={imageLabel}
@@ -109,6 +119,7 @@ export function SettingsPage({ quota }: SettingsPageProps) {
               limit={quota?.image.limit ?? 0}
               refreshAt={quota?.image.quotaRefreshAt}
             />
+          )}
           </div>
         </section>
       </div>

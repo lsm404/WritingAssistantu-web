@@ -9,7 +9,7 @@ import {
 } from "@ant-design/icons";
 import type { SidebarView } from "../lib/app-ui";
 import { maskValue } from "../lib/app-ui";
-import type { AuthUser, UserMembership, UserQuotaSummary, WechatAccount } from "../lib/types";
+import type { AuthUser, MembershipPlan, UserMembership, UserQuotaSummary, WechatAccount } from "../lib/types";
 
 type Props = {
   activeView: SidebarView;
@@ -21,19 +21,18 @@ type Props = {
   onLogout: () => void;
 };
 
-function getMembershipToneClass(planCode?: string | null) {
-  switch (planCode) {
-    case "monthly_199":
-      return "plan-tone-sun";
-    case "monthly_399":
-      return "plan-tone-sky";
-    case "monthly_599":
-      return "plan-tone-orange";
-    case "monthly_990":
-      return "plan-tone-purple";
-    default:
-      return "plan-tone-default";
-  }
+function getMembershipToneClass(planName?: string | null) {
+  const name = String(planName || "");
+  if (name.includes("基础月卡")) return "plan-tone-sun";
+  if (name.includes("进阶季卡") || name.includes("进阶月卡")) return "plan-tone-sky";
+  if (name.includes("至尊年卡") || name.includes("尊享月卡")) return "plan-tone-purple";
+  return "plan-tone-default";
+}
+
+function getPlanCategoryLabel(plan?: Pick<MembershipPlan, "planCategory" | "imageMonthlyLimit"> | null) {
+  return (plan?.planCategory ?? ((plan?.imageMonthlyLimit ?? 0) > 0 ? "text_image" : "text_only")) === "text_only"
+    ? "文案创作"
+    : "图文创作";
 }
 
 function quotaRefreshCaption(iso: string | null | undefined): string | null {
@@ -67,8 +66,10 @@ export function Sidebar({
   onViewChange,
   onLogout,
 }: Props) {
-  const membershipLabel = membership?.isActive ? membership.plan.name : "普通用户";
-  const membershipToneClass = getMembershipToneClass(membership?.plan?.code);
+  const membershipLabel = membership?.isActive
+    ? `${getPlanCategoryLabel(membership.plan)} - ${membership.plan.name}`
+    : "普通用户";
+  const membershipToneClass = getMembershipToneClass(membership?.plan?.name);
   const defaultQuota = membership?.isActive
     ? membership.plan
       ? {
@@ -89,11 +90,11 @@ export function Sidebar({
   const textPeriodShort =
     quota?.usesFreeRollingWindows && quota.text.resetEveryDays
       ? `文章`
-      : "本月文章";
+      : "文章";
   const imagePeriodShort =
     quota?.usesFreeRollingWindows && quota.image.resetEveryDays
       ? `配图`
-      : "本月配图";
+      : "配图";
 
   const textRefreshLine = quotaRefreshCaption(quota?.text.quotaRefreshAt);
   const imageRefreshLine = quotaRefreshCaption(quota?.image.quotaRefreshAt);
@@ -154,7 +155,7 @@ export function Sidebar({
           <span className="footer-detail-val">{maskValue(currentUser.email, 5, 8)}</span>
         </div>
         <div className="footer-detail-row">
-          <span className={`footer-detail-val footer-membership-pill ${membershipToneClass}`}>{membershipLabel}</span>
+          <span className={`footer-detail-val footer-membership-text ${membershipToneClass}`}>{membershipLabel}</span>
         </div>
         <div className="footer-thumb-status-slot">
           {membership?.isActive ? (
@@ -168,7 +169,6 @@ export function Sidebar({
         <div className="footer-quota-card">
           <div className="footer-quota-head">
             <span>额度消耗</span>
-            <span className="footer-quota-note">{membership?.isActive ? "当前套餐" : "免费版"}</span>
           </div>
 
           <div className="footer-quota-item">
@@ -184,6 +184,7 @@ export function Sidebar({
             </div>
           </div>
 
+          {membership?.isActive && getPlanCategoryLabel(membership.plan) === "文案创作" ? null : (
           <div className="footer-quota-item">
             <div className="footer-quota-refresh-meta footer-quota-refresh-meta-image">
               {imageRefreshLine ?? ""}
@@ -196,6 +197,7 @@ export function Sidebar({
               <div className="footer-quota-fill image" style={{ width: `${imageProgress}%` }} />
             </div>
           </div>
+        )}
         </div>
 
         <button className="sidebar-logout-btn" onClick={onLogout}>

@@ -9,6 +9,7 @@ import {
   SettingOutlined,
 } from "@ant-design/icons";
 import { fetchModelConfig, generateImage } from "../../lib/openclaw-api";
+import { copyText } from "../../lib/clipboard";
 import type {
   ImageGeneratePayload,
   ImageQuality,
@@ -47,7 +48,7 @@ function getFriendlyImageError(error: unknown, q: UserQuotaSummary | null) {
       if (q?.usesFreeRollingWindows && q.image.resetEveryDays) {
         return `当前配图额度已用完（每 ${q.image.resetEveryDays} 天恢复一次）。下个周期开始后会自动刷新，也可升级会员获得更高额度。`;
       }
-      return "本月配图额度已用完，下月自动恢复；也可升级会员继续使用。";
+      return "配图额度已用完，可升级会员继续使用。";
     }
 
   if (error.message === "UNAUTHORIZED") {
@@ -156,10 +157,9 @@ export function ImagePage({ membership, quota, authToken, baseUrl, onQuotaChange
   };
 
   const handleCopyPrompt = async (promptText: string) => {
-    try {
-      await navigator.clipboard.writeText(promptText);
+    if (await copyText(promptText)) {
       message.success("提示词已复制");
-    } catch {
+    } else {
       message.error("复制失败");
     }
   };
@@ -175,11 +175,11 @@ export function ImagePage({ membership, quota, authToken, baseUrl, onQuotaChange
   const imageTagLabel =
     quota?.usesFreeRollingWindows && quota.image.resetEveryDays
       ? `配图 · 每 ${quota.image.resetEveryDays} 天`
-      : "本月配图";
+      : "配图";
   const textTagLabel =
     quota?.usesFreeRollingWindows && quota.text.resetEveryDays
       ? `文章 · 每 ${quota.text.resetEveryDays} 天`
-      : "今日文章";
+      : "文章";
 
   if (loading) {
     return (
@@ -212,7 +212,7 @@ export function ImagePage({ membership, quota, authToken, baseUrl, onQuotaChange
         </div>
         <Typography.Text type="secondary">
           {isVipUser
-            ? "会员套餐：文章按自然日、配图按自然月扣减；配图额度用完后，仍可继续生成文章。"
+            ? "会员套餐：文章和配图按套餐总额度扣减；配图额度用完后，仍可继续生成文章。"
             : quota?.usesFreeRollingWindows
               ? "免费版：文章与 AI 配图各自按周期恢复额度（见上方标签）。配图用尽后，文章功能照常可用。"
               : "额度按服务端规则扣减；配图用尽后，仍可继续使用文章能力。"}

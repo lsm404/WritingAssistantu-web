@@ -30,6 +30,7 @@ type Props = {
   isGenerating?: boolean;
   isGeneratingImages?: boolean;
   isSendingDraft?: boolean;
+  showImageCountSelector?: boolean;
   imageCountOptions: Array<{ label: string; value: string | number }>;
   styleOptions: Array<{ label: string; value: string }>;
   rewriteGoalOptions: Array<{ label: string; value: string }>;
@@ -58,6 +59,7 @@ export function WorkspacePage({
   isGenerating = false,
   isGeneratingImages = false,
   isSendingDraft = false,
+  showImageCountSelector = true,
   imageCountOptions,
   styleOptions,
   rewriteGoalOptions,
@@ -94,7 +96,7 @@ export function WorkspacePage({
         </div>
       </div>
 
-      <div className="panels-row">
+      <div className={`panels-row${showImageCountSelector ? "" : " panels-row--text-only"}`}>
         <section className={`settings-panel${settingsCollapsed ? " settings-panel--collapsed" : ""}`}>
           <div className="ui-card">
             <div className={`card-header${settingsCollapsed ? " card-header--icon-only" : ""}`}>
@@ -172,14 +174,16 @@ export function WorkspacePage({
                     options={promptSlots.map((s) => ({ label: s.name, value: s.id }))}
                   />
                 </div>
-                <div className="form-item">
-                  <div className="form-item-label">{"\u914d\u56fe\u6570\u91cf"}</div>
-                  <Select
-                    value={workspaceOptionalImageCountValue(articleDraft.imageCount)}
-                    onChange={(value) => onArticleFieldChange("imageCount", parseWorkspaceOptionalImageCount(value))}
-                    options={imageCountOptions}
-                  />
-                </div>
+                {showImageCountSelector ? (
+                  <div className="form-item">
+                    <div className="form-item-label">{"\u914d\u56fe\u6570\u91cf"}</div>
+                    <Select
+                      value={workspaceOptionalImageCountValue(articleDraft.imageCount)}
+                      onChange={(value) => onArticleFieldChange("imageCount", parseWorkspaceOptionalImageCount(value))}
+                      options={imageCountOptions}
+                    />
+                  </div>
+                ) : null}
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginTop: "4px" }}>
                   {/* <div className="form-item">
@@ -195,7 +199,7 @@ export function WorkspacePage({
                       options={modeOptions}
                     />
                   </div> */}
-                  {(articleDraft.imageCount ?? 0) > 0 && (
+                  {showImageCountSelector && (articleDraft.imageCount ?? 0) > 0 && (
                     <div className="form-item" style={{ gridColumn: "span 2" }}>
                       <div className="form-item-label">图片要求</div>
                       <Input

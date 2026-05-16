@@ -86,6 +86,8 @@ export interface MembershipPlan {
   isLifetime: boolean;
   isActive: boolean;
   sortOrder: number;
+  planCategory?: "text_only" | "text_image";
+  supportsImage?: boolean;
   textDailyLimit: number;
   textMonthlyLimit?: number;
   imageMonthlyLimit: number;
@@ -104,7 +106,7 @@ export interface UserMembership {
   plan: MembershipPlan;
 }
 
-export type QuotaResetMode = "calendar_day" | "calendar_month" | "rolling_days";
+export type QuotaResetMode = "calendar_day" | "calendar_month" | "rolling_days" | "membership_total";
 
 export interface UsageQuotaItem {
   limit: number;

@@ -22,6 +22,7 @@ import {
   fetchUserWechatAccounts,
   saveUserWechatAccounts,
 } from "../lib/openclaw-api";
+import { copyText } from "../lib/clipboard";
 // No tauri imports
 import type {
   AuthSession,
@@ -99,19 +100,29 @@ const REGISTER_ERROR_HINT: Record<string, string> = {
   AGENT_DISABLED: "该邀请码已停用，请联系客服。",
 };
 
-function getMembershipToneClass(planCode?: string | null) {
-  switch (planCode) {
-    case "monthly_199":
-      return "plan-tone-sun";
-    case "monthly_399":
-      return "plan-tone-sky";
-    case "monthly_599":
-      return "plan-tone-orange";
-    case "monthly_990":
-      return "plan-tone-purple";
-    default:
-      return "plan-tone-default";
-  }
+function getMembershipToneClass(planName?: string | null) {
+  const name = String(planName || "");
+  if (name.includes("基础月卡")) return "plan-tone-sun";
+  if (name.includes("进阶季卡") || name.includes("进阶月卡")) return "plan-tone-sky";
+  if (name.includes("至尊年卡") || name.includes("尊享月卡")) return "plan-tone-purple";
+  return "plan-tone-default";
+}
+
+function getPlanCategoryLabel(plan?: Pick<MembershipPlan, "planCategory" | "imageMonthlyLimit"> | null) {
+  return (plan?.planCategory ?? ((plan?.imageMonthlyLimit ?? 0) > 0 ? "text_image" : "text_only")) === "text_only"
+    ? "文案创作"
+    : "图文创作";
+}
+
+function getMembershipPlanLabel(membership: UserMembership | null, fallback: string) {
+  return membership?.isActive && membership.plan
+    ? `${getPlanCategoryLabel(membership.plan)} - ${membership.plan.name}`
+    : fallback;
+}
+
+function isTextOnlyMembership(membership: UserMembership | null) {
+  if (!membership?.isActive || !membership.plan) return false;
+  return (membership.plan.planCategory ?? (membership.plan.imageMonthlyLimit > 0 ? "text_image" : "text_only")) === "text_only";
 }
 
 function InnerApp() {
@@ -376,9 +387,10 @@ function InnerApp() {
   };
 
   const membershipToneClass = useMemo(
-    () => getMembershipToneClass(membership?.plan?.code),
-    [membership?.plan?.code],
+    () => getMembershipToneClass(membership?.plan?.name),
+    [membership?.plan?.name],
   );
+  const isTextOnlyPlan = isTextOnlyMembership(membership);
 
   const activePrompt = useMemo(
     () => promptSlots.find((slot) => slot.id === activePromptId) ?? promptSlots[0],
@@ -407,6 +419,15 @@ function InnerApp() {
   const setArticleField = <K extends keyof GeneratePayload>(key: K, value: GeneratePayload[K]) => {
     setArticleDraft((current) => ({ ...current, [key]: value }));
   };
+
+  useEffect(() => {
+    if (!isTextOnlyPlan) return;
+    setArticleDraft((current) =>
+      (current.imageCount ?? 0) > 0 || current.imagePrompt
+        ? { ...current, imageCount: 0, imagePrompt: "" }
+        : current,
+    );
+  }, [isTextOnlyPlan]);
 
   const updateActiveAccount = (patch: Partial<WechatAccount>) => {
     if (!activeAccount) return;
@@ -557,14 +578,14 @@ function InnerApp() {
       if (quota?.usesFreeRollingWindows && quota.text.resetEveryDays) {
         return `当前文章生成额度已用完（每 ${quota.text.resetEveryDays} 天恢复一次）。下个周期开始后会自动刷新，也可开通会员获得更高额度。`;
       }
-      return "本月文章生成额度已用完，下月自动恢复；也可开通更高套餐获得更多总额度。";
+      return "文章生成额度已用完，可开通更高套餐获得更多总额度。";
     }
 
     if (error.message === "IMAGE_QUOTA_EXCEEDED") {
       if (quota?.usesFreeRollingWindows && quota.image.resetEveryDays) {
         return `当前配图额度已用完（每 ${quota.image.resetEveryDays} 天恢复一次）。下个周期开始后会自动刷新，也可升级会员继续使用。`;
       }
-      return "本月配图额度已用完，下月自动恢复；也可升级会员继续使用。";
+      return "配图额度已用完，可升级会员继续使用。";
     }
 
     if (error.message === "DE_AI_QUOTA_EXCEEDED") {
@@ -786,10 +807,9 @@ function InnerApp() {
             type="primary"
             style={{ marginTop: 12 }}
             onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(contactWechat);
+              if (await copyText(contactWechat)) {
                 message.success("微信号已复制");
-              } catch {
+              } else {
                 message.error("复制失败，请手动复制");
               }
             }}
@@ -961,6 +981,7 @@ function InnerApp() {
       message.info("将按照免费版周期性配图额度扣减；若额度不足会提示您是否开通会员。");
     }
 
+    const requestDraft = isTextOnlyPlan ? { ...articleDraft, imageCount: 0, imagePrompt: "" } : articleDraft;
     const previousResultMarkdown = resultMarkdown;
     const previousDraftMeta = draftMeta;
     let hasReceivedArticleDelta = false;
@@ -975,9 +996,9 @@ function InnerApp() {
         CONTENT_BACKEND_BASE_URL,
         authToken,
         {
-          ...articleDraft,
+          ...requestDraft,
           regenerateForDeAi,
-          systemPrompt: (articleDraft.systemPrompt ?? "").trim() || activePrompt?.content || "",
+          systemPrompt: (requestDraft.systemPrompt ?? "").trim() || activePrompt?.content || "",
         },
         (delta) => {
           setResultMarkdown((prev) => {
@@ -1088,8 +1109,11 @@ function InnerApp() {
       message.warning("当前没有可复制的内容");
       return;
     }
-    await navigator.clipboard.writeText(resultMarkdown);
-    message.success("Markdown 已复制");
+    if (await copyText(resultMarkdown)) {
+      message.success("Markdown 已复制");
+    } else {
+      message.error("复制失败，请手动复制");
+    }
   };
 
   const handleClearResult = () => {
@@ -1155,7 +1179,7 @@ function InnerApp() {
               color="default"
               className={`header-membership-tag ${membershipToneClass}`}
             >
-              {membership?.isActive ? membership.plan.name : "未开通会员"}
+              {getMembershipPlanLabel(membership, "未开通会员")}
             </Tag>
               <span className="header-user-pill">{currentUser.displayName}</span>
             </Space>
@@ -1194,6 +1218,7 @@ function InnerApp() {
             isGenerating={isGenerating}
             isGeneratingImages={isGeneratingImages}
             isSendingDraft={isSendingDraft}
+            showImageCountSelector={!isTextOnlyPlan}
             imageCountOptions={workspaceImageCountOptions}
             styleOptions={workspaceStyleOptions}
             rewriteGoalOptions={workspaceRewriteGoalOptions}
