@@ -24,6 +24,12 @@ import type { AuthUser } from "../lib/types";
 
 const { Title, Paragraph } = Typography;
 const EMAIL_FORMAT_MESSAGE = "邮箱格式不正确，请使用英文句号，例如 name@qq.com";
+const REGISTER_ERROR_HINT: Record<string, string> = {
+  REGISTRATION_IP_REQUIRED: "未获取到真实注册 IP，请检查服务器反向代理配置。",
+  REGISTRATION_IP_LIMIT: "当前 IP 在近期注册次数过多，请稍后再试。",
+  REGISTRATION_SUBNET_LIMIT: "当前网络环境注册次数过多，请稍后再试。",
+  REGISTRATION_DEVICE_LIMIT: "本设备注册账号数已达上限，请使用已有账号登录。",
+};
 
 export function LoginPanel({
   apiBaseUrl,
@@ -64,7 +70,8 @@ export function LoginPanel({
         setMode("login");
       }
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "操作失败");
+      const raw = error instanceof Error ? error.message : "操作失败";
+      message.error(mode === "register" ? REGISTER_ERROR_HINT[raw] ?? raw : raw);
     } finally {
       setLoading(false);
     }

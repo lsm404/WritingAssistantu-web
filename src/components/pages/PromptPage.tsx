@@ -84,6 +84,7 @@ export function PromptPage({
     if (!ok) {
       throw new Error("save-failed");
     }
+    setCreateModalOpen(false);
   };
 
   const handleEditModalOk = async () => {

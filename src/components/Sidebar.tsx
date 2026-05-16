@@ -35,6 +35,10 @@ function getPlanCategoryLabel(plan?: Pick<MembershipPlan, "planCategory" | "imag
     : "图文创作";
 }
 
+function hasImageQuotaPlan(plan?: Pick<MembershipPlan, "planCategory" | "imageMonthlyLimit"> | null) {
+  return (plan?.planCategory ?? ((plan?.imageMonthlyLimit ?? 0) > 0 ? "text_image" : "text_only")) !== "text_only";
+}
+
 function quotaRefreshCaption(iso: string | null | undefined): string | null {
   if (!iso) {
     return null;
@@ -98,6 +102,7 @@ export function Sidebar({
 
   const textRefreshLine = quotaRefreshCaption(quota?.text.quotaRefreshAt);
   const imageRefreshLine = quotaRefreshCaption(quota?.image.quotaRefreshAt);
+  const showImageQuota = Boolean(membership?.isActive && hasImageQuotaPlan(membership.plan));
 
   return (
     <aside className="sidebar">
@@ -184,7 +189,7 @@ export function Sidebar({
             </div>
           </div>
 
-          {membership?.isActive && getPlanCategoryLabel(membership.plan) === "文案创作" ? null : (
+          {showImageQuota ? (
           <div className="footer-quota-item">
             <div className="footer-quota-refresh-meta footer-quota-refresh-meta-image">
               {imageRefreshLine ?? ""}
@@ -197,7 +202,7 @@ export function Sidebar({
               <div className="footer-quota-fill image" style={{ width: `${imageProgress}%` }} />
             </div>
           </div>
-        )}
+        ) : null}
         </div>
 
         <button className="sidebar-logout-btn" onClick={onLogout}>

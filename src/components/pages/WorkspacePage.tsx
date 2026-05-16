@@ -173,6 +173,9 @@ export function WorkspacePage({
                     onChange={onPromptChange}
                     options={promptSlots.map((s) => ({ label: s.name, value: s.id }))}
                   />
+                  <div className="helper-text" style={{ marginTop: 6 }}>
+                    当前通用提示词已深度优化，建议谨慎切换以确保输出质量。
+                  </div>
                 </div>
                 {showImageCountSelector ? (
                   <div className="form-item">

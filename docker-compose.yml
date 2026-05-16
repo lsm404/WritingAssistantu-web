@@ -9,5 +9,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - NODE_BACKEND_URL=http://host.docker.internal:3100
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - .env.production
