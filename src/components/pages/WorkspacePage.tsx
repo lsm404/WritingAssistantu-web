@@ -347,7 +347,7 @@ export function WorkspacePage({
                   <span className="results-footer-right">
                     <Popconfirm
                       title="二次去AI"
-                      description="额度有限，仅在朱雀偶发标红、当前稿件不够稳时使用。"
+                      description="基于当前稿件定向清洗高风险表达，不重新扩写内容。"
                       okText="开始优化"
                       cancelText="先不"
                       placement="topRight"

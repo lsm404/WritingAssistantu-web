@@ -42,6 +42,7 @@ export interface GeneratePayload {
   systemPrompt: string;
   creationMode: CreationMode;
   sourceArticle?: string;
+  currentArticleMd?: string;
   rewriteGoal?: RewriteGoal;
   referenceFocus?: ReferenceFocus;
   referenceLevel?: ReferenceLevel;

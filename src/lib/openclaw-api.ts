@@ -163,6 +163,7 @@ export function buildGeneratePayload(payload: GeneratePayload) {
     mode: payload.mode || undefined,
     creation_mode: payload.creationMode,
     source_article: payload.sourceArticle || undefined,
+    current_article_md: payload.currentArticleMd || undefined,
     rewrite_goal: payload.rewriteGoal || undefined,
     reference_focus: payload.referenceFocus || undefined,
     reference_level: payload.referenceLevel || undefined,
